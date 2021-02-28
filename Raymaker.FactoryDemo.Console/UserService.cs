@@ -5,19 +5,23 @@ namespace Raymaker.FactoryDemo.Console
 {
     public class UserService
     {
+        private readonly IUserRepository userRepository;
         private readonly UserValidator userValidator;
         private readonly CreditLimitProviderFactory creditLimitProviderFactory;
 
         public UserService() : this(
             new DateTimeProvider(),
-            new UserCreditService())
+            new UserCreditService(),
+            new UserRepository())
         {
         }
 
         public UserService(
             IDateTimeProvider dateTimeProvider,
-            IUserCreditService userCreditService)
+            IUserCreditService userCreditService,
+            IUserRepository userRepository)
         {
+            this.userRepository = userRepository;
             this.userValidator = new UserValidator(dateTimeProvider);
             this.creditLimitProviderFactory = new CreditLimitProviderFactory(userCreditService);
         }
@@ -44,7 +48,7 @@ namespace Raymaker.FactoryDemo.Console
 
             if(this.userValidator.HasCreditLimitLessThan500(user)) return false;
 
-            // Add user to database here
+            this.userRepository.AddUser(user);
             
             return true;
         }

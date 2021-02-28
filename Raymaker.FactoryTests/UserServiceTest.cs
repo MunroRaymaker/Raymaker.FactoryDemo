@@ -1,7 +1,7 @@
-using System;
 using FluentAssertions;
 using NSubstitute;
 using Raymaker.FactoryDemo.Console;
+using System;
 using Xunit;
 
 namespace Raymaker.FactoryTests
@@ -11,12 +11,14 @@ namespace Raymaker.FactoryTests
         private readonly UserService sut; // System Under Test
         private readonly IDateTimeProvider dateTimeProvider = Substitute.For<IDateTimeProvider>();
         private readonly IUserCreditService userCreditService = Substitute.For<IUserCreditService>();
+        private readonly IUserRepository userRepository = Substitute.For<IUserRepository>();
 
         public UserServiceTest()
         {
             this.sut = new UserService(
                 this.dateTimeProvider, 
-                this.userCreditService);
+                this.userCreditService,
+                this.userRepository);
         }
 
         [Fact]
@@ -31,7 +33,7 @@ namespace Raymaker.FactoryTests
             this.userCreditService.GetCreditLimit(firstName, dob).Returns(600);
 
             // Act
-            var result = sut.AddUser(firstName, 
+            var result = this.sut.AddUser(firstName, 
                 lastName, 
                 "nick.chapsas@gmail.com", 
                 dob,
@@ -55,7 +57,7 @@ namespace Raymaker.FactoryTests
             this.userCreditService.GetCreditLimit(firstName, dob).Returns(600);
 
             // Act
-            var result = sut.AddUser(firstName,
+            var result = this.sut.AddUser(firstName,
                 lastName,
                 email,
                 dob,
@@ -69,7 +71,7 @@ namespace Raymaker.FactoryTests
         [InlineData("", true, 600, 600)]
         [InlineData("ImportantClient", true, 600, 1200)]
         [InlineData("VeryImportantClient", false, 0, 0)]
-        public void AddUser_ShouldCreateUserWithCorrectCreditLimit_WhenNameIndicatesDifferentClassification(string clientName, bool hasCreditLimit, int initialCredit, int finalCreditLimit)
+        public void AddUser_ShouldCreateUserWithCorrectCreditLimit_WhenNameIndicatesDifferentClassification(string clientName, bool hasCreditLimit, double initialCredit, double finalCreditLimit)
         {
             // Arrange
             var firstName = "Nick";
@@ -80,7 +82,7 @@ namespace Raymaker.FactoryTests
             this.userCreditService.GetCreditLimit(firstName, dob).Returns(initialCredit);
 
             // Act
-            var result = sut.AddUser(firstName,
+            var result = this.sut.AddUser(firstName,
                 lastName,
                 "nick.chapsas@gmail.com",
                 dob,
@@ -88,6 +90,8 @@ namespace Raymaker.FactoryTests
 
             // Assert
             result.Should().BeTrue();
+            this.userRepository.Received(1).AddUser(Arg.Is<User>(user => 
+                user.HasCreditLimit == hasCreditLimit && user.CreditLimit.Equals(finalCreditLimit)));
         }
 
         [Fact]
@@ -102,7 +106,7 @@ namespace Raymaker.FactoryTests
             this.userCreditService.GetCreditLimit(firstName, dob).Returns(499);
 
             // Act
-            var result = sut.AddUser(firstName,
+            var result = this.sut.AddUser(firstName,
                 lastName,
                 "nick.chapsas@gmail.com",
                 dob,
@@ -124,11 +128,11 @@ namespace Raymaker.FactoryTests
             this.userCreditService.GetCreditLimit(firstName, dob).Returns(499);
 
             // Act
-            var result = sut.AddUser(firstName,
+            var result = this.sut.AddUser(firstName,
                 lastName,
                 "nick.chapsas@gmail.com",
                 dob,
-                "");
+                "StandardUser");
 
             // Assert
             result.Should().BeFalse();
